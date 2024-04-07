@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: eb-dev
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 4001
+      targetPort: 4001
+      nodePort: 32544
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: eb-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-secret-.env: "eb-dev/data/backend"
+        vault.hashicorp.com/agent-inject-template-.env: |
+          {{- with secret "eb-dev/data/backend" -}}
+              DATABASE_URL="{{ .Data.data.DATABASE_URL }}"
+              VERFICATION_CLIENT_ID="{{ .Data.data.VERFICATION_CLIENT_ID }}"
+              VERFICATION_CLIENT_SECRET="{{ .Data.data.VERFICATION_CLIENT_SECRET }}"
+              AML_TOKEN="{{ .Data.data.AML_TOKEN }}"
+              VERIFICATION_ONFIDO_API_TOKEN="{{ .Data.data.VERIFICATION_ONFIDO_API_TOKEN }}"
+              ACCREDITION_CLIENT_ID="{{ .Data.data.ACCREDITION_CLIENT_ID }}"
+              ACCREDITION_CLIENT_SECRET="{{ .Data.data.ACCREDITION_CLIENT_SECRET }}"
+              DOCUSIGN_INTEGRATION_KEY="{{ .Data.data.DOCUSIGN_INTEGRATION_KEY }}"
+              DOCUSIGN_INTEGRATION_SECURITY_KEY="{{ .Data.data.DOCUSIGN_INTEGRATION_SECURITY_KEY }}"
+              DOCUSIGN_ENCODED_KEYS="{{ .Data.data.DOCUSIGN_ENCODED_KEYS }}"
+              DOCUSIGN_ACCOUNT_ID="{{ .Data.data.DOCUSIGN_ACCOUNT_ID }}"
+              DWOLLA_HEADER_ACCEPT="{{ .Data.data.DWOLLA_HEADER_ACCEPT }}"
+              DWOLLA_API_KEY="{{ .Data.data.DWOLLA_API_KEY }}"
+              DWOLLA_API_SECRET="{{ .Data.data.DWOLLA_API_SECRET }}"
+              PLAID_CLIENT_ID="{{ .Data.data.PLAID_CLIENT_ID }}"
+              PLAID_SECRET="{{ .Data.data.PLAID_SECRET }}"
+              ICAP_ESCROW="{{ .Data.data.ICAP_ESCROW }}"
+              SALESFORCE_ACCT_GL_VARIABLE="{{ .Data.data.SALESFORCE_ACCT_GL_VARIABLE }}"
+              SALESFORCE_GL_ACCOUNT_ID="{{ .Data.data.SALESFORCE_GL_ACCOUNT_ID }}"
+              SALESFORCE_CD_BATCH_ID="{{ .Data.data.SALESFORCE_CD_BATCH_ID }}"
+              ACCTSEED_DEBIT_GL_ACCOUNT="{{ .Data.data.ACCTSEED_DEBIT_GL_ACCOUNT }}"
+              SALESFORCE_VAULT_PUBLIC_RECORD_TYPE_ID="{{ .Data.data.SALESFORCE_VAULT_PUBLIC_RECORD_TYPE_ID }}"
+              SALESFORCE_VAULT_RECORD_TYPE_ID="{{ .Data.data.SALESFORCE_VAULT_RECORD_TYPE_ID }}"
+              BOX_CLIENT_ID="{{ .Data.data.BOX_CLIENT_ID }}"
+              BOX_CLIENT_SECRET="{{ .Data.data.BOX_CLIENT_SECRET }}"
+              BOX_PUBLIC_KEY_ID="{{ .Data.data.BOX_PUBLIC_KEY_ID }}"
+              BOX_PRIVATE_KEY="{{ .Data.data.BOX_PRIVATE_KEY }}"
+              BOX_PASSPHRASE="{{ .Data.data.BOX_PASSPHRASE }}"
+              BOX_ENTERPRISE_ID="{{ .Data.data.BOX_ENTERPRISE_ID }}"
+              BOX_USER_ID="{{ .Data.data.BOX_USER_ID }}"
+              BOX_CHANGE_REQUEST_FORMS_ID="{{ .Data.data.BOX_CHANGE_REQUEST_FORMS_ID }}"
+              LIVE_NOTIFICATION_KEY="{{ .Data.data.LIVE_NOTIFICATION_KEY }}"
+              AZURE_CLIENT_ID="{{ .Data.data.AZURE_CLIENT_ID }}"
+              AZURE_TENANT_ID="{{ .Data.data.AZURE_TENANT_ID }}"
+              AZURE_CLIENT_SECRET="{{ .Data.data.AZURE_CLIENT_SECRET }}"
+              SENDGRID_API_KEY="{{ .Data.data.SENDGRID_API_KEY }}"
+              VERIFICATION_PROVIDER="{{ .Data.data.VERIFICATION_PROVIDER }}"
+              DOCUSIGN_API_VERSION="{{ .Data.data.DOCUSIGN_API_VERSION }}"
+              DWOLLA_ACCESS_TOKEN="{{ .Data.data.DWOLLA_ACCESS_TOKEN }}"
+              DWOLLA_ENV="{{ .Data.data.DWOLLA_ENV }}"
+              PLAID_ENV="{{ .Data.data.PLAID_ENV }}"
+              CERBOS_GRPC_URL="{{ .Data.data.CERBOS_GRPC_URL }}"
+              CERBOS_URL="{{ .Data.data.CERBOS_URL }}"
+              DOCUSIGN_ASSERTION="{{ .Data.data.DOCUSIGN_ASSERTION }}"
+              ONFIDO_WEBHOOKTOKEN="{{ .Data.data.ONFIDO_WEBHOOKTOKEN }}"
+              STRAPI_KEY="{{ .Data.data.STRAPI_KEY }}"
+              S3_BUCKET_NAME="{{ .Data.data.S3_BUCKET_NAME }}"
+              VERIFICATION_MODE="{{ .Data.data.VERIFICATION_MODE }}"
+              ONFIDO_REGION="{{ .Data.data.ONFIDO_REGION }}"
+              SUPERSET_USERNAME="{{ .Data.data.SUPERSET_USERNAME }}"
+              SUPERSET_PASSWORD="{{ .Data.data.SUPERSET_PASSWORD }}"
+              CUSTOMER_TYPE="{{ .Data.data.CUSTOMER_TYPE }}"
+              SEGMENT_NAME="{{ .Data.data.SEGMENT_NAME }}"
+              SUBSEGMENT_NAME="{{ .Data.data.SUBSEGMENT_NAME }}"
+              TIMEZONE="{{ .Data.data.TIMEZONE }}"
+              SUBSCRIPTION_TYPE="{{ .Data.data.SUBSCRIPTION_TYPE }}"
+              ENCRYPTED_KEY="{{ .Data.data.ENCRYPTED_KEY }}"
+              AZURE_CLIENT_ID_SPONSOR="{{ .Data.data.AZURE_CLIENT_ID_SPONSOR }}"
+              AZURE_TENANT_ID_SPONSOR="{{ .Data.data.AZURE_TENANT_ID_SPONSOR }}"
+              AZURE_CLIENT_SECRET_SPONSOR="{{ .Data.data.AZURE_CLIENT_SECRET_SPONSOR }}"
+              MARKETPLACE_ORGANIZATION_ID="{{ .Data.data.MARKETPLACE_ORGANIZATION_ID }}"
+              {{- end }}
+        vault.hashicorp.com/role: "vault-k8s"
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: node-type
+                  operator: In
+                  values:
+                    - worker7
+                    - worker8
+                    - worker9
+                    - worker10
+                    - worker13
+      serviceAccountName: vault-auth
+      containers:
+      - name: backend
+        image: ghcr.io/equitybrix/dev_es-services-ra:1.0.14
+        envFrom:
+        - configMapRef:
+            name: backend-configmap
+        ports:
+        - containerPort: 4001
+      imagePullSecrets:
+      - name: github-registry
